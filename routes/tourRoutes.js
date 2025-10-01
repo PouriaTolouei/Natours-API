@@ -10,10 +10,11 @@ router.use('/:tourId/reviews', reviewRouter);
 router.get(
   '/monthly-plan/:year',
   authController.protect,
-  authController.restrictTo('admin', 'lead-guide', 'guide'),
+  authController.restrictTo('admin', 'lead-guide', 'guide'), // Only meant to help guides get organized
   tourController.getMonthlyPlan,
 );
 
+// Intresting stat queries open to eveyrone
 router.get('/tour-stats', tourController.getTourStats);
 router.get(
   '/top-5-cheap',
@@ -21,6 +22,7 @@ router.get(
   tourController.getAllTours,
 );
 
+// Geospatial queries open to eveyrone
 router.get(
   '/tours-within/:distance/center/:latlng/unit/:unit',
   tourController.getToursWithin,
@@ -29,24 +31,24 @@ router.get('/distances/:latlng/unit/:unit', tourController.getDistances);
 
 router
   .route('/')
-  .get(tourController.getAllTours)
+  .get(tourController.getAllTours) // Accessing all tour information open to everyone
   .post(
     authController.protect,
-    authController.restrictTo('admin', 'lead-guide'),
+    authController.restrictTo('admin', 'lead-guide'), // Tour creation restricted to admin and lead-guides
     tourController.createTour,
   );
 
 router
   .route('/:id')
-  .get(tourController.getTour)
+  .get(tourController.getTour) // Accessing a single tour information open to everyone
   .patch(
     authController.protect,
-    authController.restrictTo('admin', 'lead-guide'),
+    authController.restrictTo('admin', 'lead-guide'), // Tour creation restricted to admin and lead-guides
     tourController.updateTour,
   )
   .delete(
     authController.protect,
-    authController.restrictTo('admin', 'lead-guide'),
+    authController.restrictTo('admin', 'lead-guide'), // Tour deletino restricted to admin and lead-guides
     tourController.deleteTour,
   );
 

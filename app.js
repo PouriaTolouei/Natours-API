@@ -17,7 +17,7 @@ const app = express();
 
 // 1) GLOBAL MIDDLEWARES
 
-// Set security HTTP headers
+// Sets security HTTP headers
 app.use(helmet());
 
 // Development logging
@@ -25,7 +25,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Limit requests from same IP
+// Limits requests from same IP
 const limiter = rateLimit({
   max: 100,
   windowMs: 60 * 60 * 1000,
@@ -33,10 +33,10 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// Body parser, reading data from body into req.body
+// Body parser, reads data from body into req.body
 app.use(express.json({ limit: '10kb' }));
 
-// Set a custom query parser using qs
+// Sets a custom query parser using qs
 app.set('query parser', (str) => qs.parse(str));
 
 // Makes the req.query writable
@@ -55,7 +55,7 @@ app.use(mongoSanitize());
 // Data sanitization against XSS
 app.use(xss());
 
-// Prevent paramter pollution
+// Prevents paramter pollution
 app.use(
   hpp({
     whitelist: [
@@ -72,18 +72,13 @@ app.use(
 // Serves static files
 app.use(express.static(`${__dirname}/public`));
 
-// Test middleware
-app.use((req, res, next) => {
-  req.requestTime = new Date().toISOString();
-  next();
-});
-
 // 2) ROUTES
 
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
 
+// Handles unknown routes
 app.all(/.*/, (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server.`, 404));
 });

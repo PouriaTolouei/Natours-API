@@ -9,22 +9,22 @@ router.post('/login', authController.login);
 router.post('/forgotPassword', authController.forgotPassword);
 router.patch('/resetPassword/:token', authController.resetPassword);
 
-// Protects all the routes after this middleware
+// Restricts all user data related queries to logged in users
 router.use(authController.protect);
 
-router.patch('/updateMyPassword', authController.updatePassword);
+router.patch('/updateMyPassword', authController.updatePassword); // The only correct route for updating password without resetting
 
 router.get('/me', userController.setUserId, userController.getUser);
 router.patch(
   '/updateMe',
-  userController.preventPasswordUpdate,
+  userController.preventPasswordUpdate, // Password should NOT be updated with this route
   userController.setUserId,
   userController.setFilteredBody,
   userController.updateUser,
 );
 router.delete('/deleteMe', userController.deleteMe);
 
-// Restricts all the routes after this middleware to admin
+// Restricts queries for accessing and manipulating all user data to admins only
 router.use(authController.restrictTo('admin'));
 
 router
@@ -35,7 +35,7 @@ router
 router
   .route('/:id')
   .get(userController.getUser)
-  .patch(userController.preventPasswordUpdate, userController.updateUser)
+  .patch(userController.preventPasswordUpdate, userController.updateUser) // Password should NOT be updated with this route
   .delete(userController.deleteUser);
 
 module.exports = router;
