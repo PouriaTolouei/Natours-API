@@ -1,6 +1,13 @@
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 
+// Logs uncaught error and exits before the server crashes
+process.on('uncaughtException', (err) => {
+  console.log(err.name, err.message);
+  console.log('Unhandled exception, shutting down...');
+  process.exit(1);
+});
+
 // Loads in the config file
 dotenv.config({ path: `${__dirname}/config.env` });
 
@@ -18,15 +25,6 @@ mongoose.connect(DB).then(() => {
 const port = process.env.PORT;
 const server = app.listen(port, () => {
   console.log(`App running on port ${port}...`);
-});
-
-// Logs error and exits when the server crashes
-process.on('uncaughtException', (err) => {
-  console.log(err);
-  console.log('Unhandled exception, shutting down...');
-  server.close(() => {
-    process.exit(1);
-  });
 });
 
 // Logs error and exits when the database connection is rejected
