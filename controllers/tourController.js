@@ -1,9 +1,106 @@
+const multer = require('multer');
+const sharp = require('sharp');
+const path = require('path');
+const fspromise = require('fs').promises;
 const Tour = require('../models/tourModel');
 const catchAsync = require('../utils/catchAsync');
 const factory = require('./handlerFactory');
 const AppError = require('../utils/appError');
 
+// HELPERS
+
+// Sets the image to only be saved to memory
+const multerStorage = multer.memoryStorage();
+
+// Restricts file upload to only images
+const multerFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image')) {
+    cb(null, true);
+  } else {
+    cb(new AppError('Not an image! Please only upload images', 500), false);
+  }
+};
+
+// Handles image uploads
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter,
+});
+
 // MIDDLEWARES
+
+/**
+ * Deletes the previous images of the tour
+ */
+exports.deleteOldTourImages = catchAsync(async (req, res, next) => {
+  // If there are no new cover image or tour images, skip this middleware
+  if (!req.files.imageCover || !req.files.images) return next();
+
+  const tour = await Tour.findById(req.params.id);
+
+  // Deletes old cover image if one exists
+  if (tour.imageCover)
+    await fspromise.unlink(
+      path.join(__dirname, `../public/img/tours/${tour.imageCover}`),
+    );
+
+  // Deletes old tour images if they exist
+  if (tour.images) {
+    await Promise.all(
+      tour.images.map(async (file) => {
+        await fspromise.unlink(
+          path.join(__dirname, `../public/img/tours/${file}`),
+        );
+      }),
+    );
+  }
+
+  next();
+});
+
+/**
+ * Uploads tour images
+ */
+exports.uploadTourImages = upload.fields([
+  { name: 'imageCover', maxCount: 1 },
+  { name: 'images', maxCount: 3 },
+]);
+
+/**
+ * Resizes and saves tour images
+ */
+exports.resizeTourImages = catchAsync(async (req, res, next) => {
+  // If there are no cover image or tour images, skip this middleware
+  if (!req.files.imageCover || !req.files.images) return next();
+
+  // Builds cover image na,e
+  req.body.imageCover = `tour-${req.params.id}-${Date.now()}-cover.jpeg`;
+
+  // Resizes and saves the cover image
+  await sharp(req.files.imageCover[0].buffer)
+    .resize(2000, 1333)
+    .toFormat('jpeg')
+    .jpeg({ quality: 90 })
+    .toFile(`public/img/tours/${req.body.imageCover}`);
+
+  // Resizes and saves the tour images
+  req.body.images = [];
+  await Promise.all(
+    req.files.images.map(async (file, i) => {
+      const imageFilename = `tour-${req.params.id}-${Date.now()}-${i + 1}.jpeg`;
+      await sharp(file.buffer)
+        .resize(2000, 1333)
+        .toFormat('jpeg')
+        .jpeg({ quality: 90 })
+        .toFile(`public/img/tours/${imageFilename}`);
+
+      // Adds the filename to the body, so it can be added to the tour object in the updateOne middleware
+      req.body.images.push(imageFilename);
+    }),
+  );
+
+  next();
+});
 
 /**
  * Sets query filters to filter for top 5 tours (highest average rating, lowest price)

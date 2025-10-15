@@ -5,38 +5,65 @@ const AppError = require('../utils/appError');
 /**
  * Sends error in a development environment.
  */
-const sendErrorDev = (err, res) => {
-  // Sends fuill error detail for development
-  res.status(err.statusCode).json({
-    status: err.status,
-    message: err.message,
-    error: err,
-    stack: err.stack,
+const sendErrorDev = (err, req, res) => {
+  // Sends a JSON message for API
+  if (req.originalUrl.startsWith('/api')) {
+    // Sends full error detail for development
+    return res.status(err.statusCode).json({
+      status: err.status,
+      message: err.message,
+      error: err,
+      stack: err.stack,
+    });
+  }
+
+  // Renders an error page for the website
+  console.error('ERROR', err);
+  res.status(err.statusCode).render('error', {
+    title: 'Something went wrong!',
+    msg: err.message,
   });
 };
 
 /**
  * Sends error in a production environment.
  */
-const sendErrorProd = (err, res) => {
-  // Operational, trusted error: sends error details to client
-  if (err.isOperational) {
-    res.status(err.statusCode).json({
-      status: err.status,
-      message: err.message,
-    });
-
+const sendErrorProd = (err, req, res) => {
+  // Sends a JSON message for API
+  if (req.originalUrl.startsWith('/api')) {
+    // Operational, trusted error: sends error details to client
+    if (err.isOperational) {
+      return res.status(err.statusCode).json({
+        status: err.status,
+        message: err.message,
+      });
+    }
     // Programming or other unknown error: doesn't leak error details
-  } else {
     // Logs error
     console.error('ERROR', err);
-
     // Sends generic message
-    res.status(err.statusCode).json({
+    return res.status(err.statusCode).json({
       status: err.status,
       message: 'Something went wrong!',
     });
   }
+
+  // Renders an error page for the website
+  // Operational, trusted error: sends error details to client
+  if (err.isOperational) {
+    return res.status(err.statusCode).render('error', {
+      title: 'Something went wrong!',
+      msg: err.message,
+    });
+  }
+  // Programming or other unknown error: doesn't leak error details
+  // Logs error
+  console.error('ERROR', err);
+  // Sends generic message
+  res.status(err.statusCode).render('error', {
+    title: 'Something went wrong!',
+    msg: 'Please try again later.',
+  });
 };
 
 // CUSTOM ERROR HANDLERS
@@ -73,7 +100,7 @@ module.exports = (err, req, res, next) => {
 
   // Sends error diffrently depending on the environment
   if (process.env.NODE_ENV === 'development') {
-    sendErrorDev(err, res);
+    sendErrorDev(err, req, res);
   } else if (process.env.NODE_ENV === 'production') {
     // Creates custom errors for common errors
     let error = Object.create(err);
@@ -82,6 +109,6 @@ module.exports = (err, req, res, next) => {
     if (err.name === 'ValidationError') error = handleValidationErrorDB(err);
     if (err.name === 'JsonWebTokenError') error = handleJWTError();
     if (err.name === 'TokenExpiredError') error = handleJWTExpiredError();
-    sendErrorProd(error, res);
+    sendErrorProd(error, req, res);
   }
 };

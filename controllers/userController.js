@@ -1,9 +1,13 @@
+const multer = require('multer');
+const sharp = require('sharp');
+const path = require('path');
+const fspromise = require('fs').promises;
 const User = require('../models/userModel');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const factory = require('./handlerFactory');
 
-// HELPER FUNCTIONS
+// HELPERS
 
 /**
  *
@@ -23,7 +27,70 @@ const filterObj = (obj, ...allowedFields) => {
   return newObj;
 };
 
+// Sets the image to only be saved to memory
+const multerStorage = multer.memoryStorage();
+
+// Restricts file upload to only images
+const multerFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image')) {
+    cb(null, true);
+  } else {
+    cb(new AppError('Not an image! Please only upload images', 500), false);
+  }
+};
+
+// Handles image uploads
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter,
+});
+
 // MIDDLEWARES
+
+/**
+ * Deletes the previous photo of the user
+ */
+exports.deleteOldUserPhoto = catchAsync(async (req, res, next) => {
+  // If there is no new photo file, skip this middleware
+  if (!req.file) return next();
+
+  const userPhoto = req.user.photo;
+
+  // Doesn't delete the photo if it's the default photo (since it's a shared file)
+  if (userPhoto === 'default.jpg') return next();
+
+  // Deletes user photo
+  await fspromise.unlink(
+    path.join(__dirname, `../public/img/users/${userPhoto}`),
+  );
+
+  next();
+});
+
+/**
+ * Uploads user's photo
+ */
+exports.uploadUserPhoto = upload.single('photo');
+
+/**
+ * Resizes and saves user photo
+ */
+exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
+  // If there is no file, skip this middleware
+  if (!req.file) return next();
+
+  // Builds the image name
+  req.file.filename = `user-${req.user._id}-${Date.now()}.jpeg`;
+
+  // Resizes and saves the image
+  await sharp(req.file.buffer)
+    .resize(500, 500)
+    .toFormat('jpeg')
+    .jpeg({ quality: 90 })
+    .toFile(`public/img/users/${req.file.filename}`);
+
+  next();
+});
 
 /**
  * Prevents the user/admin from updating the password from any route other than /updateMyPassword
@@ -55,7 +122,10 @@ exports.setUserId = (req, res, next) => {
  * Filters out unwanted field names that are not allowed to be updated
  */
 exports.setFilteredBody = (req, res, next) => {
-  req.body = filterObj(req.body, 'name', 'email');
+  const filteredBody = filterObj(req.body, 'name', 'email');
+  // If a file is provided for the user photo, then it's added to the body
+  if (req.file) filteredBody.photo = req.file.filename;
+  req.body = filteredBody;
   next();
 };
 

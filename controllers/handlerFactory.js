@@ -34,7 +34,7 @@ exports.getAll = (Model) =>
 exports.getOne = (Model, popOptions) =>
   catchAsync(async (req, res, next) => {
     // Builds document query to find document with the paramter id
-    let query = Model.findById(req.params.id).populate(popOptions);
+    let query = Model.findById(req.params.id);
 
     // Populates any references as specified
     if (popOptions) query = query.populate(popOptions);

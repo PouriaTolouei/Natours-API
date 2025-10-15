@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
-const sendEmail = require('../utils/email');
+const Email = require('../utils/email');
 
 // HELPER FUNCTIONS
 
@@ -25,13 +25,13 @@ const signToken = (id) =>
  * @param res: response object
  */
 const createSendToken = (user, statusCode, res) => {
-  // Creates the token
+  // Creates the token using the user's ID
   const token = signToken(user._id);
 
-  // Sets the token as a cookie
+  // Sends the token as a cookie
   const cookieOptions = {
     expires: new Date(
-      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000,
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000, // converts to days
     ),
     httpOnly: true,
   };
@@ -40,7 +40,7 @@ const createSendToken = (user, statusCode, res) => {
 
   // Sends the response
   res.status(statusCode).json({
-    status: 'Success',
+    status: 'success',
     token,
     data: {
       user: user,
@@ -51,17 +51,38 @@ const createSendToken = (user, statusCode, res) => {
 // MIDDLEWARES
 
 /**
- * Authenticates a user for accessing a protected route using a JSON web token.
+ * Logs out a user by sending a dummy cookie to replace the legitimate cookie.
+ */
+exports.logout = (req, res, next) => {
+  // Sends a cookie with dummy text to overwrite the legitimate cookie
+  const cookieOptions = {
+    expires: new Date(
+      Date.now() + 10 * 1000, // expires in 10 seconds
+    ),
+    httpOnly: true,
+  };
+
+  res.cookie('jwt', 'loggedout', cookieOptions);
+
+  res.status(200).json({ status: 'success' });
+};
+
+/**
+ * Authenticates a user for accessing a protected route using a JSON web token (JWT).
  */
 exports.protect = catchAsync(async (req, res, next) => {
   // Gets token and checks if it's there
   let token;
-
+  // Check if the authorization header is set with a bearer token
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
     token = req.headers.authorization.split(' ')[1];
+  }
+  // Or checks if there is a valid cookie with JWT
+  else if (req.cookies.jwt && req.cookies.jwt !== 'loggedout') {
+    token = req.cookies.jwt;
   }
 
   if (!token) {
@@ -90,8 +111,47 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   // Grants access to protected route and pass authenticated user to the next middleware
   req.user = currentUser;
+  res.locals.user = currentUser;
   next();
 });
+
+/**
+ * Checks if a user is logged in or not for all rendered pages
+ */
+exports.isLoggedIn = async (req, res, next) => {
+  try {
+    // Gets token and checks if it's there
+    let token;
+    // Checks if there is a valid cookie with JWT
+    if (req.cookies.jwt && req.cookies.jwt !== 'loggedout') {
+      token = req.cookies.jwt;
+    }
+
+    if (!token) {
+      return next();
+    }
+    // Verifies the token
+    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+
+    // Checks if user stil exists
+    const currentUser = await User.findById(decoded.id);
+    if (!currentUser) {
+      return next();
+    }
+
+    // Checks if user changed password after the token was issued
+    if (currentUser.changedPasswordAfter(decoded.iat)) {
+      return next();
+    }
+
+    // There is a logged in user, so pass it to the templates
+    res.locals.user = currentUser;
+    next();
+  } catch (err) {
+    // If any errors occur, no user is passed  to the templates, so it moves on
+    next();
+  }
+};
 
 /**
  * Authorizes an authenticated user for accessing a protected route based on their role.
@@ -152,6 +212,10 @@ exports.signup = catchAsync(async (req, res, next) => {
     passwordConfirm,
   });
 
+  // Sends welcome email
+  const url = `${req.protocol}://${req.get('host')}/me`;
+  await new Email(newUser, url).sendWelcome();
+
   // Logs the user in, sends JWT
   createSendToken(newUser, 201, res);
 });
@@ -195,15 +259,9 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
   // Sends token to user's email
   const resetURL = `${req.protocol}://${req.get('host')}/api/v1/users/resetPassword/${resetPasswordToken}`;
-  const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to ${resetURL}.\nIf you didn't forget your password, please ignore this email`;
-
   // Attempts to send the email, if it fails, removes password reset fields.
   try {
-    await sendEmail({
-      email: user.email,
-      subject: 'Your password reset token (valid for 10 mins)',
-      message,
-    });
+    await new Email(user, resetURL).sendPasswordReset();
 
     res.status(200).json({
       status: 'success',

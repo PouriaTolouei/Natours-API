@@ -1,6 +1,15 @@
 {
   "extends": ["airbnb", "prettier", "plugin:node/recommended"],
   "plugins": ["prettier"],
+  "parserOptions": {
+    "sourceType": "module",
+    "ecmaVersion": 2020
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es6": true
+  },
   "rules": {
     "prettier/prettier": "error",
     "spaced-comment": "off",

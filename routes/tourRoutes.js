@@ -44,6 +44,9 @@ router
   .patch(
     authController.protect,
     authController.restrictTo('admin', 'lead-guide'), // Tour creation restricted to admin and lead-guides
+    tourController.uploadTourImages,
+    tourController.resizeTourImages,
+    tourController.deleteOldTourImages,
     tourController.updateTour,
   )
   .delete(
