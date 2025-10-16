@@ -8,6 +8,7 @@ import { displayMap } from './mapbox';
 import { signup, login, logout } from './auth';
 import { updateSettings } from './updateSettings';
 import { bookTour } from './stripe';
+import { showAlert } from './alerts';
 
 // DOM ELEMENTS
 
@@ -19,6 +20,7 @@ const userDataForm = document.querySelector('.form-user-data');
 const userPasswordForm = document.querySelector('.form-user-password');
 const savePasswordBtn = document.querySelector('.btn--save-password');
 const bookBtn = document.getElementById('book-tour');
+const alertMessage = document.querySelector('body').dataset.alert;
 
 // DELEGATION
 
@@ -129,4 +131,8 @@ if (bookBtn) {
     const { tourId } = e.target.dataset;
     bookTour(tourId);
   });
+}
+
+if (alertMessage) {
+  showAlert('success', alertMessage, 10);
 }

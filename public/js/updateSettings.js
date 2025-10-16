@@ -27,7 +27,7 @@ export const updateSettings = async (data, type) => {
       // Shows success popup upon successful update
       showAlert(
         'success',
-        `${type.charAt(0).toUpperCase() + type.slice(1)} updated succesfully!`,
+        `${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully!`,
       );
       // Reloads the page to reflect the changes
       window.setTimeout(() => {

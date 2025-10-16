@@ -19,7 +19,7 @@ const DB = process.env.DB.replace('<PASSWORD>', process.env.DB_PASSWORD);
 
 // Connects to the database
 mongoose.connect(DB).then(() => {
-  console.log('DB connection succesful!');
+  console.log('DB connection successful!');
 });
 
 // Starts the sever on a port
@@ -34,5 +34,13 @@ process.on('unhandledRejection', (err) => {
   console.log('Unhandled rejection, shutting down...');
   server.close(() => {
     process.exit(1);
+  });
+});
+
+// Shuts down gracefully when the hosting platform sends a SIGTERM signal
+process.on('SIGTERM', () => {
+  console.log('SIGTERM receieved, shutting down...');
+  server.close(() => {
+    console.log('Process terminated.');
   });
 });

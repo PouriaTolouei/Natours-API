@@ -27,7 +27,7 @@ export const signup = async (name, email, password, passwordConfirm) => {
 
     if (res.data.status === 'success') {
       // Shows success popup upon successful sign up
-      showAlert('success', 'Signed up succesfully!');
+      showAlert('success', 'Signed up successfully!');
       // Sends user to the home page after 1.5 seconds
       window.setTimeout(() => {
         location.assign('/');
@@ -59,7 +59,7 @@ export const login = async (email, password) => {
 
     if (res.data.status === 'success') {
       // Shows success popup upon successful login
-      showAlert('success', 'Logged in succesfully!');
+      showAlert('success', 'Logged in successfully!');
       // Sends user to the home page after 1.5 seconds
       window.setTimeout(() => {
         location.assign('/');

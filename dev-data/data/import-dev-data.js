@@ -13,7 +13,7 @@ const DB = process.env.DB.replace('<PASSWORD>', process.env.DB_PASSWORD);
 mongoose
   .connect(DB)
   .then(() => {
-    console.log('DB connection succesful!');
+    console.log('DB connection successful!');
   })
   .catch((err) => {
     console.log(err);
@@ -36,7 +36,7 @@ const importData = async () => {
     await Tour.create(tours);
     await User.create(users, { validateBeforeSave: false });
     await Review.create(reviews);
-    await console.log('Data succesfully loaded!');
+    await console.log('Data successfully loaded!');
   } catch (err) {
     console.log(err);
   }
@@ -49,7 +49,7 @@ const deleteData = async () => {
     await Tour.deleteMany();
     await User.deleteMany();
     await Review.deleteMany();
-    console.log('Data succesfully deleted!');
+    console.log('Data successfully deleted!');
   } catch (err) {
     console.log(err);
   }

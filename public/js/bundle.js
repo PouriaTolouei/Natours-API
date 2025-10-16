@@ -54041,11 +54041,11 @@ ${o2.vertexSource}`, this.forceManualRenderingForInstanceIDShaders && (d2 = d2.r
     const el = document.querySelector(".alert");
     if (el) el.parentElement.removeChild(el);
   };
-  var showAlert = (type, msg) => {
+  var showAlert = (type, msg, time = 5) => {
     hideAlert();
     const markup = `<div class="alert alert--${type}">${msg}</div>`;
     document.querySelector("body").insertAdjacentHTML("afterbegin", markup);
-    window.setTimeout(hideAlert, 5e3);
+    window.setTimeout(hideAlert, time * 1e3);
   };
 
   // public/js/auth.js
@@ -54062,7 +54062,7 @@ ${o2.vertexSource}`, this.forceManualRenderingForInstanceIDShaders && (d2 = d2.r
         }
       });
       if (res.data.status === "success") {
-        showAlert("success", "Signed up succesfully!");
+        showAlert("success", "Signed up successfully!");
         window.setTimeout(() => {
           location.assign("/");
         }, 1500);
@@ -54083,7 +54083,7 @@ ${o2.vertexSource}`, this.forceManualRenderingForInstanceIDShaders && (d2 = d2.r
         }
       });
       if (res.data.status === "success") {
-        showAlert("success", "Logged in succesfully!");
+        showAlert("success", "Logged in successfully!");
         window.setTimeout(() => {
           location.assign("/");
         }, 1500);
@@ -54124,7 +54124,7 @@ ${o2.vertexSource}`, this.forceManualRenderingForInstanceIDShaders && (d2 = d2.r
       if (res.data.status === "success") {
         showAlert(
           "success",
-          `${type.charAt(0).toUpperCase() + type.slice(1)} updated succesfully!`
+          `${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully!`
         );
         window.setTimeout(() => {
           location.reload(true);
@@ -54160,6 +54160,7 @@ ${o2.vertexSource}`, this.forceManualRenderingForInstanceIDShaders && (d2 = d2.r
   var userPasswordForm = document.querySelector(".form-user-password");
   var savePasswordBtn = document.querySelector(".btn--save-password");
   var bookBtn = document.getElementById("book-tour");
+  var alertMessage = document.querySelector("body").dataset.alert;
   if (mapBox) {
     const locations = JSON.parse(
       document.getElementById("map").dataset.locations
@@ -54220,6 +54221,9 @@ ${o2.vertexSource}`, this.forceManualRenderingForInstanceIDShaders && (d2 = d2.r
       const { tourId } = e.target.dataset;
       bookTour(tourId);
     });
+  }
+  if (alertMessage) {
+    showAlert("success", alertMessage, 10);
   }
 })();
 /*! Bundled license information:
